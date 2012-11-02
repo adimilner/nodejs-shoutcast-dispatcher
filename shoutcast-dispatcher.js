@@ -1,30 +1,34 @@
 // CONFIG START
-var url = "http://dsl.tb-stream.net:80/";
-var maxslots = 5;
-var statsint = 200; // in milliseconds
-var statsheadint = 20; // the interval is statsint*statsheadint
-var listenip = "0.0.0.0";
-var listenport = 8000;
+var url          = "http://dsl.tb-stream.net:80/"
+  , maxslots     = 500
+  , statsint     = 15000
+  , statsheadint = 20
+  , listenip     = "0.0.0.0"
+  , listenport   = 8000;
 //CONFIG END
 
-// BUILD START
-var http = require("http");
-var radio = require("radio-stream");
-var slots = {};
-var statsstate = 0;
-var bytessent = 0;
-var bytesreceived = 0;
-var stream = radio.createReadStream(url);
-// BUILD END
+// INIT START
+var http          = require("http")
+  , radio         = require("radio-stream")
+  , slots         = {}
+  , statsstate    = 0
+  , bytessent     = 0
+  , bytesreceived = 0
+  , stream        = radio.createReadStream(url)
+  , slot          = null
+  , server        = null
+  , slotsused     = null;
+// INIT END
 
 stream.on("data", function (chunk) {
 	bytesreceived += chunk.length;
-	for (var slot in slots){
+	for (slot in slots){
 		slots[slot].write(chunk);
 		bytessent += chunk.length;
 	};
 });
-var server = http.createServer(function(req, res){
+
+server = http.createServer(function(req, res){
 	res.writeHead(200,{
 		"Content-Type":		"audio/mpeg",
 		"Transfer-Encoding":	"chunked",
@@ -43,8 +47,9 @@ var server = http.createServer(function(req, res){
 	else
 		res.end("Server full");
 });
+
 setInterval(function() {
-	var slotsused = server.connections;
+	slotsused = server.connections;
 	if(statsheadint != 0)
 	{
 		if(statsstate == 0)
@@ -55,4 +60,5 @@ setInterval(function() {
 	}
 	console.log("STATS:"+slotsused+"|"+bytesreceived+"|"+bytessent);
 }, statsint);
+
 server.listen(listenport, listenip);
