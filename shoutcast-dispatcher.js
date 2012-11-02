@@ -4,11 +4,11 @@ var url          = "http://dsl.tb-stream.net:80/"
   , statsint     = 15000
   , statsheadint = 20
   , listenip     = "0.0.0.0"
-  , listenport   = 8001
+  , listenport   = 8000
   , strmidletime = 5000;
 //CONFIG END
 
-// BUILD START
+// INIT START
 var http          = require("http")
   , radio         = require("radio-stream")
   , statsstate    = 0
@@ -17,7 +17,7 @@ var http          = require("http")
   , stream        = null
   , server        = null
   , stopstreamtck = null;
-// BUILD END
+// INIT END
 
 server = http.createServer(function(req, res) {
 	res.writeHead(200,{
