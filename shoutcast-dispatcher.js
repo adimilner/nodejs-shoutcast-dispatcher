@@ -46,17 +46,19 @@ server = http.createServer(function(req, res) {
 				});
 			}
 		}
-		stream.on("data", function(chunk) {
+		var chunklistenercallback = function(chunk) {
 			if(clientconnected == true) {
 				res.write(chunk);
 				bytessent += chunk.length;
 			}
-		});
+		};
+		stream.on("data", chunklistenercallback);
 		slotsused += 1;
 		res.on("close", function() {
 			console.log("Client disconnected.");
 			clientconnected = false;
 			slotsused -= 1;
+			stream.removeListener("data", chunklistenercallback);
 			if(slotsused == 0) {
 				console.log("Last client disconnected. Killing stream connection ...");
 				stopstreamtck = setTimeout(function() {
