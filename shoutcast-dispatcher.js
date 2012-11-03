@@ -16,7 +16,8 @@ var http          = require("http")
   , bytesreceived = 0
   , stream        = null
   , server        = null
-  , stopstreamtck = null;
+  , stopstreamtck = null
+  , slotsused     = 0;
 // INIT END
 
 server = http.createServer(function(req, res) {
@@ -25,9 +26,10 @@ server = http.createServer(function(req, res) {
 		"Transfer-Encoding":	"chunked",
 		"Connection":		"Close"
 	});
-	if(server.connections <= maxslots) {
+	if(slotsused+1 <= maxslots) {
 		console.log("Client connected");
-		if(stream == null || stream.connected != true || stopstreamtck != null) {
+		var clientconnected = true;
+		if(stream == null || stopstreamtck != null) {
 			if(stopstreamtck != null) {
 				console.log("Reusing stream connection");
 				clearTimeout(stopstreamtck);
@@ -39,16 +41,23 @@ server = http.createServer(function(req, res) {
 			else {
 				console.log("Building stream connection ...");
 				stream = radio.createReadStream(url);
+				stream.on("data", function(chunk) {
+					bytesreceived += chunk.length;
+				});
 			}
 		}
 		stream.on("data", function(chunk) {
-			res.write(chunk);
-			bytesreceived += chunk.length/server.connections;
-			bytessent += chunk.length;
+			if(clientconnected == true) {
+				res.write(chunk);
+				bytessent += chunk.length;
+			}
 		});
+		slotsused += 1;
 		res.on("close", function() {
 			console.log("Client disconnected.");
-			if(server.connections == 0) {
+			clientconnected = false;
+			slotsused -= 1;
+			if(slotsused == 0) {
 				console.log("Last client disconnected. Killing stream connection ...");
 				stopstreamtck = setTimeout(function() {
 					stream.destroy();
@@ -63,7 +72,6 @@ server = http.createServer(function(req, res) {
 		res.end("Server full");
 });
 setInterval(function() {
-	slotsused = server.connections;
 	if(statsheadint != 0) {
 		if(statsstate == 0)
 			console.log("STATSDESC:SLOTSUSED|BYTESRECEIVED|BYTESSENT");
